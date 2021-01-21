@@ -19,7 +19,7 @@ from django.template.loader import get_template
 import csv
 import xml.etree.ElementTree as XT
 
-# from visualizer.utils import render_to_pdf
+from visualizer.utils import render_to_pdf
 
 
 class VisualizerView(TemplateView):
@@ -48,23 +48,23 @@ class VisualizerView(TemplateView):
                 writer.writerow(value)
             response['Content-Disposition']= 'attachment; filename="votingResults.csv"'
             return response
-        # elif request.GET["Formato"]=="pdf":
-        #     listed_values=[]
-        #     for d in Vote.postproc:
-        #         Values=[]
-        #         for v in d.values():
-        #             Values.append(v)
-        #         listed_values.append(Values)
-        #     context = {
-        #     "voting_id": request.GET["VotID"],
-        #     "voting_name": Vote.name,
-        #     "voting_question": Vote.question,
-        #     "data": listed_values,
-        #     }
-        #     pdf = render_to_pdf('visualizer/votingpdf.html', context)
-        #     response = HttpResponse(pdf, content_type='application/pdf')
-        #     response['Content-Disposition'] = 'attachment; filename="votingpdf.pdf"'
-        #     return response
+        elif request.GET["Formato"]=="pdf":
+            listed_values=[]
+            for d in Vote.postproc:
+                Values=[]
+                for v in d.values():
+                    Values.append(v)
+                listed_values.append(Values)
+            context = {
+            "voting_id": request.GET["VotID"],
+            "voting_name": Vote.name,
+            "voting_question": Vote.question,
+            "data": listed_values,
+            }
+            pdf = render_to_pdf('visualizer/votingpdf.html', context)
+            response = HttpResponse(pdf, content_type='application/pdf')
+            response['Content-Disposition'] = 'attachment; filename="votingpdf.pdf"'
+            return response
         elif request.GET["Formato"]=="json":
             response=JsonResponse({'results':Vote.postproc})
             response['Content-Disposition']= 'attachment; filename="votingResults.json"'
@@ -115,7 +115,7 @@ class VisualizerView(TemplateView):
         #num_voted = Vote.objects.filter(voting_id=vid).count()
         
         #Load mock users from csv
-        read_users = readCSV('visualizer/resources/EGCusers.csv')
+        read_users = readCSV('visualizer/resources/EGCusers700.csv')
         
         #Calculating num of censed users and num of censed who voted
         censed_users = [u['voted'] for u in read_users]
@@ -143,6 +143,16 @@ class VisualizerView(TemplateView):
         age_range = [18,25,35,55,65]
         birthdates = [user['birthdate'] for user in read_users]
         votes_by_age = get_votes_by_age(age_range,birthdates)
+        
+        #Calculate votes by work_status
+        work_status_raw = [voter['work_status'] for voter in read_users]
+        dict_work_status_raw={'Emp':0,'Unemp':0}
+        for vote in work_status_raw:
+            dict_work_status_raw[vote] +=1
+        
+        work_status_votes = list(dict_work_status_raw.values())
+        
+        context['work_status'] = work_status_votes
         
         #Loading the context with data and returning it back
         context['num_censed']=num_censed
